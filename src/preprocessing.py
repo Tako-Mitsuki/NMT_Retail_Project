@@ -174,16 +174,18 @@ rfm.rename(columns={"InvoiceDate": "Recency",
 
 
 from sklearn.preprocessing import StandardScaler
-
-from sklearn.preprocessing import StandardScaler
-
 # Nếu cột Segment chưa tồn tại, tạo tạm
 if "Segment" not in rfm.columns:
     print("⚠️ Cột 'Segment' không tồn tại — tạo mặc định 'ToCluster'")
     rfm["Segment"] = "ToCluster"
 
 # Chỉ lấy khách hàng thuộc nhóm cần phân cụm
-rfm_cluster = rfm[rfm["Segment"] == "ToCluster"][["Recency", "Frequency", "Monetary"]]
+# Nếu chưa có cột 'Segment', tạo mặc định
+rfm_cluster = rfm.loc[
+    rfm.get("Segment", pd.Series(["ToCluster"] * len(rfm))) == "ToCluster",
+    ["Recency", "Frequency", "Monetary"]
+]
+
 
 # Chuẩn hóa dữ liệu trước khi phân cụm
 scaler = StandardScaler()
