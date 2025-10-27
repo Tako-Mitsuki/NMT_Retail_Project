@@ -175,25 +175,41 @@ rfm.rename(columns={"InvoiceDate": "Recency",
 
 from sklearn.preprocessing import StandardScaler
 
-# Chỉ lấy khách hàng không phải VIP
-rfm_cluster = rfm[rfm["Segment"] == "ToCluster"][["Recency","Frequency","Monetary"]]
+from sklearn.preprocessing import StandardScaler
 
+# Nếu cột Segment chưa tồn tại, tạo tạm
+if "Segment" not in rfm.columns:
+    print("⚠️ Cột 'Segment' không tồn tại — tạo mặc định 'ToCluster'")
+    rfm["Segment"] = "ToCluster"
+
+# Chỉ lấy khách hàng thuộc nhóm cần phân cụm
+rfm_cluster = rfm[rfm["Segment"] == "ToCluster"][["Recency", "Frequency", "Monetary"]]
+
+# Chuẩn hóa dữ liệu trước khi phân cụm
 scaler = StandardScaler()
 rfm_scaled = scaler.fit_transform(rfm_cluster)
 
+# Trung bình RFM theo từng cụm
+if "Cluster" in rfm.columns:
+    cluster_profile = rfm.groupby("Cluster")[["Recency", "Frequency", "Monetary"]].mean()
+    print("\n📊 Trung bình RFM mỗi cụm:")
+    print(cluster_profile)
+else:
+    print("⚠️ Chưa có cột 'Cluster' — bỏ qua thống kê trung bình cụm.")
 
-# Trung bình RFM mỗi cụm
-cluster_profile = rfm.groupby("Cluster")[["Recency","Frequency","Monetary"]].mean()
-print(cluster_profile)
-
-# Mapping cụm sang phân khúc dễ hiểu
+# Gán nhãn dễ hiểu cho từng cụm
 cluster_labels = {
     0: "Khách giá trị cao",
     1: "Khách trung thành",
     2: "Khách mới",
     3: "Khách rủi ro"
 }
-rfm["Segment"] = rfm["Cluster"].map(cluster_labels).fillna(rfm["Segment"])
+
+if "Cluster" in rfm.columns:
+    rfm["Segment"] = rfm["Cluster"].map(cluster_labels).fillna(rfm["Segment"])
+
+print("✅ Hoàn tất gán nhãn phân khúc khách hàng.")
+
 
 
 from mlxtend.preprocessing import TransactionEncoder
