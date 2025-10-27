@@ -174,43 +174,35 @@ rfm.rename(columns={"InvoiceDate": "Recency",
 
 
 from sklearn.preprocessing import StandardScaler
-# Nếu cột Segment chưa tồn tại, tạo tạm
+
+# --- Kiểm tra cột cần thiết ---
+required_cols = ["Recency", "Frequency", "Monetary"]
 if "Segment" not in rfm.columns:
-    print("⚠️ Cột 'Segment' không tồn tại — tạo mặc định 'ToCluster'")
-    rfm["Segment"] = "ToCluster"
+    raise KeyError("⚠️ Cột 'Segment' chưa được tạo trong DataFrame RFM!")
 
-# Chỉ lấy khách hàng thuộc nhóm cần phân cụm
-# Nếu chưa có cột 'Segment', tạo mặc định
-rfm_cluster = rfm.loc[
-    rfm.get("Segment", pd.Series(["ToCluster"] * len(rfm))) == "ToCluster",
-    ["Recency", "Frequency", "Monetary"]
-]
+# --- Lọc khách hàng không phải VIP ---
+rfm_cluster = rfm.loc[rfm["Segment"].eq("ToCluster"), required_cols].copy()
 
-
-# Chuẩn hóa dữ liệu trước khi phân cụm
+# --- Chuẩn hóa dữ liệu ---
 scaler = StandardScaler()
 rfm_scaled = scaler.fit_transform(rfm_cluster)
 
-# Trung bình RFM theo từng cụm
+# --- Trung bình RFM mỗi cụm ---
 if "Cluster" in rfm.columns:
-    cluster_profile = rfm.groupby("Cluster")[["Recency", "Frequency", "Monetary"]].mean()
-    print("\n📊 Trung bình RFM mỗi cụm:")
+    cluster_profile = rfm.groupby("Cluster")[required_cols].mean()
     print(cluster_profile)
-else:
-    print("⚠️ Chưa có cột 'Cluster' — bỏ qua thống kê trung bình cụm.")
 
-# Gán nhãn dễ hiểu cho từng cụm
-cluster_labels = {
-    0: "Khách giá trị cao",
-    1: "Khách trung thành",
-    2: "Khách mới",
-    3: "Khách rủi ro"
-}
+    # --- Gán nhãn cụm ---
+    cluster_labels = {
+        0: "Khách giá trị cao",
+        1: "Khách trung thành",
+        2: "Khách mới",
+        3: "Khách rủi ro"
+    }
 
-if "Cluster" in rfm.columns:
     rfm["Segment"] = rfm["Cluster"].map(cluster_labels).fillna(rfm["Segment"])
-
-print("✅ Hoàn tất gán nhãn phân khúc khách hàng.")
+else:
+    print("⚠️ Cột 'Cluster' chưa tồn tại — cần chạy bước phân cụm trước.")
 
 
 
